@@ -38,7 +38,6 @@ class LinearClassifier:
       y_batch = None
 
       #########################################################################
-      # TODO:                                                                 #
       # Sample batch_size elements from the training data and their           #
       # corresponding labels to use in this round of gradient descent.        #
       # Store the data in X_batch and their corresponding labels in           #
@@ -48,7 +47,11 @@ class LinearClassifier:
       # Hint: Use np.random.choice to generate indices. Sampling with         #
       # replacement is faster than sampling without replacement.              #
       #########################################################################
-      pass
+
+      batch_indexes = np.random.choice(num_train, batch_size, replace=True)
+      X_batch = X[:, batch_indexes]
+      y_batch = y[batch_indexes]
+
       #########################################################################
       #                       END OF YOUR CODE                                #
       #########################################################################
@@ -59,10 +62,9 @@ class LinearClassifier:
 
       # perform parameter update
       #########################################################################
-      # TODO:                                                                 #
       # Update the weights using the gradient and the learning rate.          #
       #########################################################################
-      pass
+      self.W += -learning_rate * grad
       #########################################################################
       #                       END OF YOUR CODE                                #
       #########################################################################
@@ -90,15 +92,15 @@ class LinearClassifier:
     # TODO:                                                                   #
     # Implement this method. Store the predicted labels in y_pred.            #
     ###########################################################################
-    pass
+    y_pred = np.argmax(self.W.dot(X), 0)
     ###########################################################################
     #                           END OF YOUR CODE                              #
     ###########################################################################
     return y_pred
-  
+
   def loss(self, X_batch, y_batch, reg):
     """
-    Compute the loss function and its derivative. 
+    Compute the loss function and its derivative.
     Subclasses will override this.
 
     Inputs:
@@ -110,7 +112,8 @@ class LinearClassifier:
     - loss as a single float
     - gradient with respect to self.W; an array of the same shape as W
     """
-    pass
+
+    # implemented at the sub module
 
 
 class LinearSVM(LinearClassifier):
