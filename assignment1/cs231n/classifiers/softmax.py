@@ -19,12 +19,34 @@ def softmax_loss_naive(W, X, y, reg):
   dW = np.zeros_like(W)
 
   #############################################################################
-  # TODO: Compute the softmax loss and its gradient using explicit loops.     #
+  # Compute the softmax loss and its gradient using explicit loops.     #
   # Store the loss in loss and the gradient in dW. If you are not careful     #
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  num_dims = W.shape[1]
+  num_classes = W.shape[0]
+  num_train = X.shape[1]
+
+  for i in xrange(num_train):
+    scores = W.dot(X[:,i])
+    exp_scores = np.exp(scores)
+    prob_scores = exp_scores/np.sum(exp_scores)
+    loss += -np.log(prob_scores[y[i]])
+
+    for d in xrange(num_dims):
+      for k in xrange(num_classes):
+        if k == y[i]:
+          dW[k, d] += X[d, i] * (prob_scores[k]-1)
+        else:
+          dW[k, d] += X[d, i] * prob_scores[k]
+
+  loss /= num_train
+  dW /=num_train
+
+  loss += 0.5 * reg * np.sum(W**2)
+  dW += reg * W
+
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
@@ -43,12 +65,12 @@ def softmax_loss_vectorized(W, X, y, reg):
   dW = np.zeros_like(W)
 
   #############################################################################
-  # TODO: Compute the softmax loss and its gradient using no explicit loops.  #
+  # Compute the softmax loss and its gradient using no explicit loops.  #
   # Store the loss in loss and the gradient in dW. If you are not careful     #
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  num_train = X.shape[1]
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################

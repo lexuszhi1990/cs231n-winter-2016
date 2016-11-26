@@ -101,21 +101,18 @@ def eval_numerical_gradient_net(net, inputs, output, h=1e-5):
               inputs, output, h=h)
 
 
-def grad_check_sparse(f, x, analytic_grad, num_checks):
+def grad_check_sparse(f, x, analytic_grad, num_checks=10, h=1e-5):
   """
   sample a few random elements and only return numerical
   in this dimensions.
   """
-  h = 1e-5
 
-  x.shape
   for i in xrange(num_checks):
     ix = tuple([randrange(m) for m in x.shape])
 
     oldval = x[ix]
     x[ix] = oldval + h # increment by h
     fxph = f(x) # evaluate f(x + h)
-    print type(fxph), type(fxmh)
     x[ix] = oldval - h # increment by h
     fxmh = f(x) # evaluate f(x - h)
     x[ix] = oldval # reset
