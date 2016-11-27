@@ -2,7 +2,7 @@ import numpy as np
 from cs231n.classifiers.linear_svm import *
 from cs231n.classifiers.softmax import *
 
-class LinearClassifier:
+class LinearClassifier(object):
 
   def __init__(self):
     self.W = None
@@ -13,9 +13,10 @@ class LinearClassifier:
     Train this linear classifier using stochastic gradient descent.
 
     Inputs:
-    - X: D x N array of training data. Each training point is a D-dimensional
-         column.
-    - y: 1-dimensional array of length N with labels 0...K-1, for K classes.
+    - X: A numpy array of shape (N, D) containing training data; there are N
+      training samples each of dimension D.
+    - y: A numpy array of shape (N,) containing training labels; y[i] = c
+      means that X[i] has label 0 <= c < C for C classes.
     - learning_rate: (float) learning rate for optimization.
     - reg: (float) regularization strength.
     - num_iters: (integer) number of steps to take when optimizing
@@ -25,11 +26,11 @@ class LinearClassifier:
     Outputs:
     A list containing the value of the loss function at each training iteration.
     """
-    dim, num_train = X.shape
+    num_train, dim = X.shape
     num_classes = np.max(y) + 1 # assume y takes values 0...K-1 where K is number of classes
     if self.W is None:
       # lazily initialize W
-      self.W = np.random.randn(num_classes, dim) * 0.001
+      self.W = 0.001 * np.random.randn(dim, num_classes)
 
     # Run stochastic gradient descent to optimize W
     loss_history = []
@@ -47,11 +48,9 @@ class LinearClassifier:
       # Hint: Use np.random.choice to generate indices. Sampling with         #
       # replacement is faster than sampling without replacement.              #
       #########################################################################
-
-      batch_indexes = np.random.choice(num_train, batch_size, replace=True)
-      X_batch = X[:, batch_indexes]
-      y_batch = y[batch_indexes]
-
+      batch_idx = np.random.choice(num_train, batch_size, replace = True)
+      X_batch =  X[batch_idx]
+      y_batch = y[batch_idx]
       #########################################################################
       #                       END OF YOUR CODE                                #
       #########################################################################
@@ -64,7 +63,7 @@ class LinearClassifier:
       #########################################################################
       # Update the weights using the gradient and the learning rate.          #
       #########################################################################
-      self.W += -learning_rate * grad
+      self.W += - learning_rate * grad
       #########################################################################
       #                       END OF YOUR CODE                                #
       #########################################################################
@@ -92,7 +91,8 @@ class LinearClassifier:
     # TODO:                                                                   #
     # Implement this method. Store the predicted labels in y_pred.            #
     ###########################################################################
-    y_pred = np.argmax(self.W.dot(X), 0)
+    scores = X.dot(self.W)
+    y_pred = np.argmax(scores, axis = 1)
     ###########################################################################
     #                           END OF YOUR CODE                              #
     ###########################################################################
@@ -104,16 +104,16 @@ class LinearClassifier:
     Subclasses will override this.
 
     Inputs:
-    - X_batch: D x N array of data; each column is a data point.
-    - y_batch: 1-dimensional array of length N with labels 0...K-1, for K classes.
+    - X_batch: A numpy array of shape (N, D) containing a minibatch of N
+      data points; each point has dimension D.
+    - y_batch: A numpy array of shape (N,) containing labels for the minibatch.
     - reg: (float) regularization strength.
 
     Returns: A tuple containing:
     - loss as a single float
     - gradient with respect to self.W; an array of the same shape as W
     """
-
-    # implemented at the sub module
+    pass
 
 
 class LinearSVM(LinearClassifier):

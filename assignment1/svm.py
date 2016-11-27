@@ -2,7 +2,7 @@
 
 import random
 import numpy as np
-from cs231n.data_utils import load_CIFAR10
+from cs231n.data_utils import get_CIFAR10_data
 import matplotlib.pyplot as plt
 
 # This is a bit of magic to make matplotlib figures appear inline in the notebook
@@ -113,6 +113,26 @@ X_dev = np.hstack([X_dev, np.ones((X_dev.shape[0], 1))])
 print X_train.shape, X_val.shape, X_test.shape, X_dev.shape
 # (49000, 3073) (1000, 3073) (1000, 3073) (500, 3073)
 
+# Invoke the above function to get our data.
+X_train, y_train, X_val, y_val, X_test, y_test, X_dev, y_dev = get_CIFAR10_data()
+print 'Train data shape: ', X_train.shape
+print 'Train labels shape: ', y_train.shape
+print 'Validation data shape: ', X_val.shape
+print 'Validation labels shape: ', y_val.shape
+print 'Test data shape: ', X_test.shape
+print 'Test labels shape: ', y_test.shape
+print 'dev data shape: ', X_dev.shape
+print 'dev labels shape: ', y_dev.shape
+# =>
+# Train data shape:  (49000, 3073)
+# Train labels shape:  (49000,)
+# Validation data shape:  (1000, 3073)
+# Validation labels shape:  (1000,)
+# Test data shape:  (1000, 3073)
+# Test labels shape:  (1000,)
+# dev data shape:  (500, 3073)
+# dev labels shape:  (500,)
+
 # Evaluate the naive implementation of the loss we provided for you:
 from cs231n.classifiers.linear_svm import svm_loss_naive
 import time
@@ -184,8 +204,7 @@ print 'difference: %f' % difference
 from cs231n.classifiers import LinearSVM
 svm = LinearSVM()
 tic = time.time()
-loss_hist = svm.train(X_train, y_train, learning_rate=1e-7, reg=5e4,
-                      num_iters=1500, verbose=True)
+loss_hist = svm.train(X_train, y_train, learning_rate=1e-7, reg=5e4, num_iters=1500, verbose=True)
 toc = time.time()
 print 'That took %fs' % (toc - tic)
 
@@ -219,7 +238,6 @@ best_val = -1   # The highest validation accuracy that we have seen so far.
 best_svm = None # The LinearSVM object that achieved the highest validation rate.
 
 ###############################################################################
-# TODO:                                                                       #
 # Write code that chooses the best hyperparameters by tuning on the validation#
 # set. For each combination of hyperparameters, train a linear SVM on the     #
 # training set, compute its accuracy on the training and validation sets, and #
