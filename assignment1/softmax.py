@@ -4,10 +4,11 @@ import random
 import numpy as np
 from cs231n.data_utils import get_CIFAR10_data
 import matplotlib.pyplot as plt
+import time
 
 # This is a bit of magic to make matplotlib figures appear inline in the notebook
 # rather than in a new window.
-%matplotlib osx
+# %matplotlib osx
 plt.rcParams['figure.figsize'] = (10.0, 8.0) # set default size of plots
 plt.rcParams['image.interpolation'] = 'nearest'
 plt.rcParams['image.cmap'] = 'gray'
@@ -133,81 +134,54 @@ print 'dev labels shape: ', y_dev.shape
 # dev data shape:  (500, 3073)
 # dev labels shape:  (500,)
 
-
-# Evaluate the naive implementation of the loss we provided for you:
+# First implement the naive softmax loss function with nested loops.
+# Open the file cs231n/classifiers/softmax.py and implement the
+# softmax_loss_naive function.
+# del softmax_loss_naive
 from cs231n.classifiers.softmax import softmax_loss_naive
-# del(softmax_loss_naive)
-import time
 
-# generate a random SVM weight matrix of small numbers
+# Generate a random softmax weight matrix and use it to compute the loss.
 W = np.random.randn(3073, 10) * 0.0001
+loss, grad = softmax_loss_naive(W, X_dev, y_dev, 0.0)
 
-loss, grad = svm_loss_naive(W, X_dev, y_dev, 0.00001)
-print 'loss: %f' % (loss, )
+# As a rough sanity check, our loss should be something close to -log(0.1).
+print 'loss: %f' % loss
+print 'sanity check: %f' % (-np.log(0.1))
 
-# Once you've implemented the gradient, recompute it with the code below
-# and gradient check it with the function we provided for you
+# Complete the implementation of softmax_loss_naive and implement a (naive)
+# version of the gradient that uses nested loops.
+loss, grad = softmax_loss_naive(W, X_dev, y_dev, 0.0)
 
-# Compute the loss and its gradient at W.
-loss, grad = svm_loss_naive(W, X_dev, y_dev, 0.0)
-
-# Numerically compute the gradient along several randomly chosen dimensions, and
-# compare them with your analytically computed gradient. The numbers should match
-# almost exactly along all dimensions.
+# As we did for the SVM, use numeric gradient checking as a debugging tool.
+# The numeric gradient should be close to the analytic gradient.
 from cs231n.gradient_check import grad_check_sparse
-f = lambda w: svm_loss_naive(w, X_dev, y_dev, 0.0)[0]
-grad_numerical = grad_check_sparse(f, W, grad)
+f = lambda w: softmax_loss_naive(w, X_dev, y_dev, 0.0)[0]
+grad_numerical = grad_check_sparse(f, W, grad, 10)
 
-# do the gradient check once again with regularization turned on
-# you didn't forget the regularization gradient did you?
-loss, grad = svm_loss_naive(W, X_dev, y_dev, 1e2)
-f = lambda w: svm_loss_naive(w, X_dev, y_dev, 1e2)[0]
-grad_numerical = grad_check_sparse(f, W, grad)
+# similar to SVM case, do another gradient check with regularization
+loss, grad = softmax_loss_naive(W, X_dev, y_dev, 1e2)
+f = lambda w: softmax_loss_naive(w, X_dev, y_dev, 1e2)[0]
+grad_numerical = grad_check_sparse(f, W, grad, 10)
 
-# Next implement the function svm_loss_vectorized; for now only compute the loss;
-# we will implement the gradient in a moment.
+# Now that we have a naive implementation of the softmax loss function and its gradient,
+# implement a vectorized version in softmax_loss_vectorized.
+# The two versions should compute the same results, but the vectorized version should be
+# much faster.
 tic = time.time()
-loss_naive, grad_naive = svm_loss_naive(W, X_dev, y_dev, 0.00001)
+loss_naive, grad_naive = softmax_loss_naive(W, X_dev, y_dev, 0.00001)
 toc = time.time()
-print 'Naive loss: %e computed in %fs' % (loss_naive, toc - tic)
+print 'naive loss: %e computed in %fs' % (loss_naive, toc - tic)
 
-from cs231n.classifiers.linear_svm import svm_loss_vectorized
+from cs231n.classifiers.softmax import softmax_loss_vectorized
 tic = time.time()
-loss_vectorized, _ = svm_loss_vectorized(W, X_dev, y_dev, 0.00001)
+loss_vectorized, grad_vectorized = softmax_loss_vectorized(W, X_dev, y_dev, 0.00001)
 toc = time.time()
-print 'Vectorized loss: %e computed in %fs' % (loss_vectorized, toc - tic)
+print 'vectorized loss: %e computed in %s' % (loss_vectorized, toc - tic)
 
-# The losses should match but your vectorized implementation should be much faster.
-print 'difference: %f' % (loss_naive - loss_vectorized)
+# As we did for the SVM, we use the Frobenius norm to compare the two versions
+# of the gradient.
+grad_difference = np.linalg.norm(grad_naive - grad_vectorized, ord='fro')
+print 'Loss difference: %f' % np.abs(loss_naive - loss_vectorized)
+print 'Gradient difference: %f' % grad_difference
 
-# Complete the implementation of svm_loss_vectorized, and compute the gradient
-# of the loss function in a vectorized way.
-
-# The naive implementation and the vectorized implementation should match, but
-# the vectorized version should still be much faster.
-tic = time.time()
-_, grad_naive = svm_loss_naive(W, X_dev, y_dev, 0.00001)
-toc = time.time()
-print 'Naive loss and gradient: computed in %fs' % (toc - tic)
-
-tic = time.time()
-_, grad_vectorized = svm_loss_vectorized(W, X_dev, y_dev, 0.00001)
-toc = time.time()
-print 'Vectorized loss and gradient: computed in %fs' % (toc - tic)
-
-# The loss is a single number, so it is easy to compare the values computed
-# by the two implementations. The gradient on the other hand is a matrix, so
-# we use the Frobenius norm to compare them.
-difference = np.linalg.norm(grad_naive - grad_vectorized, ord='fro')
-print 'difference: %f' % difference
-
-# In the file linear_classifier.py, implement SGD in the function
-# LinearClassifier.train() and then run it with the code below.
-from cs231n.classifiers import LinearSVM
-svm = LinearSVM()
-tic = time.time()
-loss_hist = svm.train(X_train, y_train, learning_rate=1e-7, reg=5e4,
-                      num_iters=1500, verbose=True)
-toc = time.time()
-print 'That took %fs' % (toc - tic)
 
