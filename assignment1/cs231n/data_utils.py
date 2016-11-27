@@ -21,12 +21,57 @@ def load_CIFAR10(ROOT):
     f = os.path.join(ROOT, 'data_batch_%d' % (b, ))
     X, Y = load_CIFAR_batch(f)
     xs.append(X)
-    ys.append(Y)    
+    ys.append(Y)
   Xtr = np.concatenate(xs)
   Ytr = np.concatenate(ys)
   del X, Y
   Xte, Yte = load_CIFAR_batch(os.path.join(ROOT, 'test_batch'))
   return Xtr, Ytr, Xte, Yte
+
+def get_CIFAR10_data(num_training=49000, num_validation=1000, num_test=1000, num_dev=500):
+  """
+  Load the CIFAR-10 dataset from disk and perform preprocessing to prepare
+  it for the linear classifier. These are the same steps as we used for the
+  SVM, but condensed to a single function.
+  """
+  # Load the raw CIFAR-10 data
+  cifar10_dir = './cs231n/datasets/cifar-10-batches-py'
+  X_train, y_train, X_test, y_test = load_CIFAR10(cifar10_dir)
+
+  # subsample the data
+  mask = range(num_training, num_training + num_validation)
+  X_val = X_train[mask]
+  y_val = y_train[mask]
+  mask = range(num_training)
+  X_train = X_train[mask]
+  y_train = y_train[mask]
+  mask = range(num_test)
+  X_test = X_test[mask]
+  y_test = y_test[mask]
+  mask = np.random.choice(num_training, num_dev, replace=False)
+  X_dev = X_train[mask]
+  y_dev = y_train[mask]
+
+  # Preprocessing: reshape the image data into rows
+  X_train = np.reshape(X_train, (X_train.shape[0], -1))
+  X_val = np.reshape(X_val, (X_val.shape[0], -1))
+  X_test = np.reshape(X_test, (X_test.shape[0], -1))
+  X_dev = np.reshape(X_dev, (X_dev.shape[0], -1))
+
+  # Normalize the data: subtract the mean image
+  mean_image = np.mean(X_train, axis = 0)
+  X_train -= mean_image
+  X_val -= mean_image
+  X_test -= mean_image
+  X_dev -= mean_image
+
+  # add bias dimension and transform into columns
+  X_train = np.hstack([X_train, np.ones((X_train.shape[0], 1))])
+  X_val = np.hstack([X_val, np.ones((X_val.shape[0], 1))])
+  X_test = np.hstack([X_test, np.ones((X_test.shape[0], 1))])
+  X_dev = np.hstack([X_dev, np.ones((X_dev.shape[0], 1))])
+
+  return X_train, y_train, X_val, y_val, X_test, y_test, X_dev, y_dev
 
 def load_tiny_imagenet(path, dtype=np.float32):
   """
@@ -74,7 +119,7 @@ def load_tiny_imagenet(path, dtype=np.float32):
     with open(boxes_file, 'r') as f:
       filenames = [x.split('\t')[0] for x in f]
     num_images = len(filenames)
-    
+
     X_train_block = np.zeros((num_images, 3, 64, 64), dtype=dtype)
     y_train_block = wnid_to_label[wnid] * np.ones(num_images, dtype=np.int64)
     for j, img_file in enumerate(filenames):
@@ -86,11 +131,11 @@ def load_tiny_imagenet(path, dtype=np.float32):
       X_train_block[j] = img.transpose(2, 0, 1)
     X_train.append(X_train_block)
     y_train.append(y_train_block)
-      
+
   # We need to concatenate all training data
   X_train = np.concatenate(X_train, axis=0)
   y_train = np.concatenate(y_train, axis=0)
-  
+
   # Next load validation data
   with open(os.path.join(path, 'val', 'val_annotations.txt'), 'r') as f:
     img_files = []
@@ -131,7 +176,7 @@ def load_tiny_imagenet(path, dtype=np.float32):
         img_file_to_wnid[line[0]] = line[1]
     y_test = [wnid_to_label[img_file_to_wnid[img_file]] for img_file in img_files]
     y_test = np.array(y_test)
-  
+
   return class_names, X_train, y_train, X_val, y_val, X_test, y_test
 
 
