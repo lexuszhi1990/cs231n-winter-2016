@@ -157,6 +157,9 @@ class TwoLayerNet(object):
     train_acc_history = []
     val_acc_history = []
 
+    mu = 0.99
+    v_w2 = 0; v_w1 = 0; v_b2 = 0; v_b1 = 0
+
     for it in xrange(num_iters):
       X_batch = None
       y_batch = None
@@ -183,10 +186,41 @@ class TwoLayerNet(object):
       # using stochastic gradient descent. You'll need to use the gradients   #
       # stored in the grads dictionary defined above.                         #
       #########################################################################
-      self.params['W2'] += - learning_rate * grads['W2']
-      self.params['b2'] += - learning_rate * grads['b2']
-      self.params['W1'] += - learning_rate * grads['W1']
-      self.params['b1'] += - learning_rate * grads['b1']
+      # self.params['W2'] += - learning_rate * grads['W2']
+      # self.params['b2'] += - learning_rate * grads['b2']
+      # self.params['W1'] += - learning_rate * grads['W1']
+      # self.params['b1'] += - learning_rate * grads['b1']
+
+      # momentum update
+      # v_w2 = mu * v_w2 - learning_rate * grads["W2"]
+      # self.params['W2'] += v_w2
+
+      # v_b2 = mu * v_b2 - learning_rate * grads["b2"]
+      # self.params['b2'] += v_b2
+
+      # v_w1 = mu * v_w1 - learning_rate * grads["W1"]
+      # self.params['W1'] += v_w1
+
+      # v_b1 = mu * v_b1 - learning_rate * grads["b1"]
+      # self.params['b1'] += v_b1
+
+      # nesterov momentum update
+      v_w2_prev = v_w2
+      v_w2 = mu * v_w2 - learning_rate * grads["W2"]
+      self.params['W2'] += -(mu * v_w2_prev) + (1+mu) * v_w2
+
+      v_b2_prev = v_b2
+      v_b2 = mu * v_b2 - learning_rate * grads["b2"]
+      self.params['b2'] += -(mu * v_b2_prev) + (1+mu) * v_b2
+
+      v_w1_prev = v_w1
+      v_w1 = mu * v_w1 - learning_rate * grads["W1"]
+      self.params['W1'] += -(mu * v_w1_prev) + (1+mu) * v_w1
+
+      v_b1_prev = v_b1
+      v_b1 = mu * v_b1 - learning_rate * grads["b1"]
+      self.params['b1'] += -(mu * v_b1_prev) + (1+mu) * v_b1
+
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
