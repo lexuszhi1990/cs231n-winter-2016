@@ -242,12 +242,16 @@ class FullyConnectedNet(object):
     ###########################################################################
     layer_input = X
     ar_cache = {}
+    dropout_cache = {}
 
     for lay in xrange(self.num_layers-1):
       if self.use_batchnorm:
         layer_input, ar_cache[lay] = affine_bn_relu_forward(layer_input, self.params['W%d'%(lay+1)], self.params['b%d'%(lay+1)], self.params['gamma%d'%(lay+1)], self.params['beta%d'%(lay+1)], self.bn_params[lay])
       else:
         layer_input, ar_cache[lay] = affine_relu_forward(layer_input, self.params['W%d'%(lay+1)], self.params['b%d'%(lay+1)])
+
+      if self.use_dropout:
+          layer_input,  dropout_cache[lay] = dropout_forward(layer_input, self.dropout_param)
 
     out, ar_cache[self.num_layers] = affine_forward(layer_input, self.params['W%d'%self.num_layers], self.params['b%d'%self.num_layers])
     scores = out
@@ -285,6 +289,9 @@ class FullyConnectedNet(object):
       if layer_number == self.num_layers:
         dx, grads[w_name], grads[b_name] = affine_backward(dout, ar_cache[self.num_layers])
       else:
+        if self.use_dropout:
+          dout = dropout_backward(dout, dropout_cache[layer_number-1])
+
         if self.use_batchnorm:
           dx, grads[w_name], grads[b_name], grads[gamma_name], grads[beta_name] = affine_bn_relu_backward(dout, ar_cache[layer_number-1])
         else:
