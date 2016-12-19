@@ -65,9 +65,8 @@ def create_class_visualization(target_y, model, **kwargs):
     class_mask = np.zeros(scores.shape)
     class_mask[0,target_y] = 1
     scores = scores * class_mask
-    dX, grads = model.backward(scores, cache)
-    dX = dX - l2_reg * X
-    X = X + learning_rate * dX
+    dX, _ = model.backward(scores, cache)
+    X = X + learning_rate * (dX + 2 * l2_reg * X)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -134,9 +133,14 @@ def invert_features(target_feats, layer, model, **kwargs):
     # large pixel values in the generated image using the l2_reg parameter;   #
     # then update the generated image using the learning_rate from above.     #
     ###########################################################################
-    scores, cache = model.forward(X, mode='test', start=0, end=layer)
-    scores = feats - scores
-    dX, grads = model.backward(scores, cache)
+    layer_out, cache = model.forward(X, mode='test', start=None, end=layer)
+
+    loss_noreg = np.sum((layer_out - target_feats) ** 2)  # loss w.o. regularization term
+    if t % show_every == 0:
+        print "loss (w.o. regularization) = ", loss_noreg
+    # dloss is the gradient of the reconstruction loss w.r.t. layer_out
+    dloss = 2 * (layer_out - target_feats)
+    dX, grads = model.backward(dloss, cache)
     dX = dX - l2_reg * X
     X = X + learning_rate * dX
     ###########################################################################
