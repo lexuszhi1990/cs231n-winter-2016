@@ -61,7 +61,6 @@ expected_next_c = np.asarray([
 print 'next_h error: ', rel_error(expected_next_h, next_h)
 print 'next_c error: ', rel_error(expected_next_c, next_c)
 
-
 N, D, H = 4, 5, 6
 x = np.random.randn(N, D)
 prev_h = np.random.randn(N, H)
@@ -106,7 +105,6 @@ print 'dc error: ', rel_error(dc_num, dc)
 print 'dWx error: ', rel_error(dWx_num, dWx)
 print 'dWh error: ', rel_error(dWh_num, dWh)
 print 'db error: ', rel_error(db_num, db)
-
 
 # LSTM: forward
 N, D, H, T = 2, 5, 4, 3
@@ -162,3 +160,29 @@ print 'dh0 error: ', rel_error(dx_num, dx)
 print 'dWx error: ', rel_error(dx_num, dx)
 print 'dWh error: ', rel_error(dx_num, dx)
 print 'db error: ', rel_error(dx_num, dx)
+
+N, D, W, H = 10, 20, 30, 40
+word_to_idx = {'<NULL>': 0, 'cat': 2, 'dog': 3}
+V = len(word_to_idx)
+T = 13
+
+model = CaptioningRNN(word_to_idx,
+          input_dim=D,
+          wordvec_dim=W,
+          hidden_dim=H,
+          cell_type='lstm',
+          dtype=np.float64)
+
+# Set all model parameters to fixed values
+for k, v in model.params.iteritems():
+  model.params[k] = np.linspace(-1.4, 1.3, num=v.size).reshape(*v.shape)
+
+features = np.linspace(-0.5, 1.7, num=N*D).reshape(N, D)
+captions = (np.arange(N * T) % V).reshape(N, T)
+
+loss, grads = model.loss(features, captions)
+expected_loss = 9.82445935443
+
+print 'loss: ', loss
+print 'expected loss: ', expected_loss
+print 'difference: ', abs(loss - expected_loss)

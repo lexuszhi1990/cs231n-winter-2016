@@ -63,6 +63,7 @@ def rnn_step_backward(dnext_h, cache):
   # HINT: For the tanh function, you can compute the local derivative in terms#
   # of the output value from tanh.                                            #
   #############################################################################
+  # 如果选择 f(z) = 1/(1+ exp(-z)) ，也就是sigmoid函数，那么它的导数就是 f'(z) = f(z) (1-f(z)) （如果选择tanh函数，那它的导数就是  f'(z) = 1- (f(z))^2
   x, prev_h, Wh, Wx, b, next_h = cache
   da = dnext_h * (1 - next_h * next_h)
   dx = da.dot(Wx.T)
@@ -278,16 +279,20 @@ def lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b):
   # TODO: Implement the forward pass for a single timestep of an LSTM.        #
   # You may want to use the numerically stable sigmoid implementation above.  #
   #############################################################################
-  N, H = prev_h.shape
-  a = np.dot(x, Wx) + np.dot(prev_h, Wh) + b
-  sub_arrays = np.split(a, 4, axis=1)
-  i = sigmoid(sub_arrays[0])
-  f = sigmoid(sub_arrays[1])
-  o = sigmoid(sub_arrays[2])
-  g = np.tanh(sub_arrays[3])
-  next_c = f * prev_c + i * g
-  next_h = o * np.tanh(next_c)
-  cache = i, f, o, g, prev_c, next_c, prev_h, sub_arrays, x, Wx, Wh
+  H = Wh.shape[0]
+
+  a = x.dot(Wx) + prev_h.dot(Wh) + b
+
+  z_i = sigmoid(a[:,:H])
+  z_f = sigmoid(a[:,H:2*H])
+  z_o = sigmoid(a[:,2*H:3*H])
+  z_g = np.tanh(a[:,3*H:])
+
+  next_c = z_f * prev_c + z_i * z_g
+  z_t = np.tanh(next_c)
+  next_h = z_o * z_t
+
+  cache = (z_i, z_f, z_o, z_g, z_t, prev_c, prev_h, Wx, Wh, x)
   #############################################################################
   #                              END OF YOUR CODE                             #
   #############################################################################
@@ -320,26 +325,28 @@ def lstm_step_backward(dnext_h, dnext_c, cache):
   # the output value from the nonlinearity.                                   #
   #############################################################################
 
-  i, f, o, g, prev_c, next_c, prev_h, sub_arrays, x, Wx, Wh = cache
-  next_c_df = prev_c
-  next_c_di = g
-  next_c_dg = i
-  next_h_dnext_c = o * (1-np.square(np.tanh(next_c)))
-  dprev_c = dnext_c * f + dnext_h * next_h_dnext_c * f
-  di = dnext_c * next_c_di + dnext_h * next_h_dnext_c * next_c_di
-  df = dnext_c * next_c_df + dnext_h * next_h_dnext_c * next_c_df
-  do = dnext_h * np.tanh(next_c)
-  dg = dnext_c * next_c_dg + dnext_h * next_h_dnext_c * next_c_dg
-  dai = di * np.exp(sub_arrays[0])/(np.square(1+np.exp(sub_arrays[0])))
-  daf = df * np.exp(sub_arrays[1])/(np.square(1+np.exp(sub_arrays[1])))
-  dao = do * np.exp(sub_arrays[2])/(np.square(1+np.exp(sub_arrays[2])))
-  dag = dg * (1-np.square(np.tanh(sub_arrays[3])))
-  da = np.concatenate((dai, daf, dao, dag), axis=1)
-  dx = np.dot(da, Wx.T)
-  dprev_h = np.dot(da, Wh.T)
-  dWx = np.dot(x.T, da)
-  dWh = np.dot(prev_h.T, da)
-  db = np.sum(da, axis=0)
+  H = dnext_h.shape[1]
+  z_i, z_f, z_o, z_g, z_t, prev_c, prev_h, Wx, Wh, x = cache
+
+  dz_o = z_t * dnext_h
+  dc_t = z_o * (1 - z_t * z_t) * dnext_h + dnext_c
+  dz_f = prev_c * dc_t
+  dz_i = z_g * dc_t
+  dprev_c = z_f * dc_t
+  dz_g = z_i * dc_t
+
+  da_i = (1 - z_i) * z_i * dz_i
+  da_f = (1 - z_f) * z_f * dz_f
+  da_o = (1 - z_o) * z_o * dz_o
+  da_g = (1 - z_g * z_g) * dz_g
+  da = np.hstack((da_i, da_f, da_o, da_g))
+
+  dWx = x.T.dot(da)
+  dWh = prev_h.T.dot(da)
+
+  db = np.sum(da, axis = 0)
+  dx = da.dot(Wx.T)
+  dprev_h = da.dot(Wh.T)
 
   #############################################################################
   #                               END OF YOUR CODE                            #
@@ -424,23 +431,26 @@ def lstm_backward(dh, cache):
   # You should use the lstm_step_backward function that you just defined.     #
   #############################################################################
   N, T, H = dh.shape
-  D = cache['1'][8].shape[1]
+  z_i, z_f, z_o, z_g, z_t, prev_c, prev_h, Wx, Wh, x = cache[T-1]
+  D = x.shape[1]
+
+  dprev_h = np.zeros((N, H))
+  dprev_c = np.zeros((N, H))
   dx = np.zeros((N, T, D))
-  dWx = np.zeros((D, 4*H))
+  dh0 = np.zeros((N, H))
+  dWx= np.zeros((D, 4*H))
   dWh = np.zeros((H, 4*H))
   db = np.zeros((4*H,))
-  for t in reversed(xrange(T)):
-    if t == T-1:
-      ddh = dh[:,t,:]
-      ddprev_c = np.zeros((N, H))
-    else:
-      ddh = dh[:,t,:] + ddprev_h
-    ddx, ddprev_h, ddprev_c, ddWx, ddWh, ddb = lstm_step_backward(ddh, ddprev_c, cache['%d'%t])
-    dx[:,t,:] = ddx
-    dWx += ddWx
-    dWh += ddWh
-    db += ddb
-  dh0 = ddprev_h
+
+  for t in range(T):
+    t = T-1-t
+    step_cache = cache[t]
+    dnext_h = dh[:,t,:] + dprev_h
+    dnext_c = dprev_c
+    dx[:,t,:], dprev_h, dprev_c, dWxt, dWht, dbt = lstm_step_backward(dnext_h, dnext_c, step_cache)
+    dWx, dWh, db = dWx+dWxt, dWh+dWht, db+dbt
+
+  dh0 = dprev_h
 
   #############################################################################
   #                               END OF YOUR CODE                            #
